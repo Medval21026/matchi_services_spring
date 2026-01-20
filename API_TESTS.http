@@ -1,0 +1,387 @@
+### ================================
+### MATCHI SERVICE - API TESTS
+### Backend: http://localhost:8080
+### ================================
+
+### Variables
+@baseUrl = http://localhost:8080/api
+@terrainId = 1
+@clientTelephone = 42345678
+@proprietaireId = 1
+
+### ================================
+### 1. PROPRIÉTAIRE
+### ================================
+
+### 1.1. Créer un Propriétaire
+POST {{baseUrl}}/proprietaires
+Content-Type: application/json
+
+{
+  "nom": "Benali",
+  "prenom": "Ahmed",
+  "telephone": 555123456,
+  "password": "password123"
+}
+
+### 1.2. Login Propriétaire
+POST {{baseUrl}}/proprietaires/login
+Content-Type: application/json
+
+{
+  "telephone": 555123456,
+  "password": "password123"
+}
+
+### 1.3. Récupérer un Propriétaire
+GET {{baseUrl}}/proprietaires/{{proprietaireId}}
+
+### 1.4. Activer un compte
+PUT {{baseUrl}}/proprietaires/{{proprietaireId}}/activate
+
+
+### ================================
+### 2. TERRAINS
+### ================================
+
+### 2.1. Liste de tous les terrains
+GET {{baseUrl}}/terrains
+
+### 2.2. Créer un Terrain
+POST {{baseUrl}}/terrains
+Content-Type: application/json
+
+{
+  "nom": "Terrain Football A",
+  "adresse": "Rue de la Liberté, Alger",
+  "proprietaireId": 1,
+  "heureOuverture": "08:00",
+  "heureFermeture": "22:00"
+}
+
+### 2.3. Récupérer un terrain par ID
+GET {{baseUrl}}/terrains/{{terrainId}}
+
+### 2.4. Modifier un terrain
+PUT {{baseUrl}}/terrains/{{terrainId}}
+Content-Type: application/json
+
+{
+  "nom": "Terrain Football A - Premium",
+  "heureOuverture": "07:00",
+  "heureFermeture": "23:00"
+}
+
+### 2.5. Supprimer un terrain
+DELETE {{baseUrl}}/terrains/{{terrainId}}
+
+
+### ================================
+### 3. CLIENTS ABONNÉS
+### ================================
+
+### 3.1. Liste de tous les clients
+GET {{baseUrl}}/clients-abonnes
+
+### 3.2. Créer un Client
+POST {{baseUrl}}/clients-abonnes
+Content-Type: application/json
+
+{
+  "nom": "Amari",
+  "prenom": "Karim",
+  "telephone": 42345678
+}
+
+### 3.3. Récupérer un client par ID
+GET {{baseUrl}}/clients-abonnes/1
+
+### 3.4. Modifier un client
+PUT {{baseUrl}}/clients-abonnes/1
+Content-Type: application/json
+
+{
+  "nom": "Amari",
+  "prenom": "Karim Mohamed",
+  "telephone": 42345678
+}
+
+### 3.5. Supprimer un client
+DELETE {{baseUrl}}/clients-abonnes/1
+
+
+### ================================
+### 4. ABONNEMENTS ⭐
+### ================================
+
+### 4.1. Liste de tous les abonnements
+GET {{baseUrl}}/abonnements
+
+### 4.2. Créer un Abonnement (avec horaires)
+POST {{baseUrl}}/abonnements
+Content-Type: application/json
+
+{
+  "terrainId": 1,
+  "clientTelephone": 42345678,
+  "dateDebut": "2026-01-15",
+  "dateFin": "2026-02-15",
+  "horaires": [
+    {
+      "jourSemaine": "LUNDI",
+      "heureDebut": "08:00",
+      "prixHeure": 1500
+    },
+    {
+      "jourSemaine": "MERCREDI",
+      "heureDebut": "10:00",
+      "prixHeure": 1500
+    },
+    {
+      "jourSemaine": "VENDREDI",
+      "heureDebut": "15:00",
+      "prixHeure": 1200
+    }
+  ]
+}
+
+### 4.3. Récupérer un abonnement par ID
+GET {{baseUrl}}/abonnements/1
+
+### 4.4. Récupérer les abonnements d'un client
+GET {{baseUrl}}/abonnements/client/1
+
+### 4.5. Modifier un Abonnement
+PUT {{baseUrl}}/abonnements/1
+Content-Type: application/json
+
+{
+  "status": "SUSPENDU"
+}
+
+### 4.6. Supprimer un Abonnement
+DELETE {{baseUrl}}/abonnements/1
+
+
+### ================================
+### 5. HORAIRES D'ABONNEMENT
+### ================================
+
+### 5.1. Horaires d'un abonnement
+GET {{baseUrl}}/abonnements-horaires/abonnement/1
+
+### 5.2. Horaires par terrain
+GET {{baseUrl}}/abonnements-horaires/terrain/{{terrainId}}
+
+### 5.3. Horaires par date
+GET {{baseUrl}}/abonnements-horaires/date/2026-01-20
+
+
+### ================================
+### 6. RÉSERVATIONS PONCTUELLES ⭐
+### ================================
+
+### 6.1. Liste de toutes les réservations
+GET {{baseUrl}}/reservations-ponctuelles
+
+### 6.2. Créer une Réservation Ponctuelle
+POST {{baseUrl}}/reservations-ponctuelles
+Content-Type: application/json
+
+{
+  "date": "2026-01-20",
+  "heureDebut": "14:00",
+  "terrainId": 1,
+  "clientTelephone": 42345678,
+  "prix": 1500
+}
+
+### 6.3. Réservation avec heure invalide (pour tester validation)
+POST {{baseUrl}}/reservations-ponctuelles
+Content-Type: application/json
+
+{
+  "date": "2026-01-20",
+  "heureDebut": "23:00",
+  "terrainId": 1,
+  "clientTelephone": 42345678,
+  "prix": 1500
+}
+
+### 6.4. Récupérer une réservation par ID
+GET {{baseUrl}}/reservations-ponctuelles/1
+
+### 6.5. Réservations par terrain
+GET {{baseUrl}}/reservations-ponctuelles/terrain/{{terrainId}}
+
+### 6.6. Modifier une réservation
+PUT {{baseUrl}}/reservations-ponctuelles/1
+Content-Type: application/json
+
+{
+  "heureDebut": "16:00",
+  "prix": 2000
+}
+
+### 6.7. Supprimer une réservation
+DELETE {{baseUrl}}/reservations-ponctuelles/1
+
+
+### ================================
+### 7. DISPONIBILITÉS
+### ================================
+
+### 7.1. Tous les horaires occupés (global)
+GET {{baseUrl}}/disponibilites/horaires-occupes
+
+
+### ================================
+### 8. HORAIRES INDISPONIBLES
+### ================================
+
+### 8.1. Tous les horaires indisponibles
+GET {{baseUrl}}/indisponibles
+
+### 8.2. Horaires indisponibles par terrain
+GET {{baseUrl}}/indisponibles/terrain/{{terrainId}}
+
+### 8.3. Horaires indisponibles par terrain et date
+GET {{baseUrl}}/indisponibles/terrain/{{terrainId}}/date/2026-01-20
+
+### 8.4. Horaires indisponibles par période
+GET {{baseUrl}}/indisponibles/terrain/{{terrainId}}/periode?dateDebut=2026-01-01&dateFin=2026-01-31
+
+### 8.5. Horaires par type de réservation
+GET {{baseUrl}}/indisponibles/terrain/{{terrainId}}/type/ABONNEMENT
+
+### 8.6. Synchroniser un terrain
+POST {{baseUrl}}/indisponibles/terrain/{{terrainId}}/synchroniser
+
+### 8.7. Synchroniser tous les terrains
+POST {{baseUrl}}/indisponibles/synchroniser-tous
+
+
+### ================================
+### 9. TESTS DE VALIDATION
+### ================================
+
+### 9.1. Test: Créer réservation avec heure après fermeture (DOIT ÉCHOUER)
+POST {{baseUrl}}/reservations-ponctuelles
+Content-Type: application/json
+
+{
+  "date": "2026-01-20",
+  "heureDebut": "23:00",
+  "terrainId": 1,
+  "clientTelephone": 42345678,
+  "prix": 1500
+}
+# Réponse attendue: 400 Bad Request - "L'heure de début (23:00) est après l'heure de fermeture du terrain (22:00)"
+
+### 9.2. Test: Créer abonnement avec téléphone invalide (DOIT ÉCHOUER)
+POST {{baseUrl}}/abonnements
+Content-Type: application/json
+
+{
+  "terrainId": 1,
+  "clientTelephone": 99999999,
+  "dateDebut": "2026-01-15",
+  "dateFin": "2026-02-15",
+  "horaires": [
+    {
+      "jourSemaine": "LUNDI",
+      "heureDebut": "08:00",
+      "prixHeure": 1500
+    }
+  ]
+}
+# Réponse attendue: 400 Bad Request - "Client non trouvé avec le téléphone: 99999999"
+
+### 9.3. Test: Créer terrain sans heures d'ouverture
+POST {{baseUrl}}/terrains
+Content-Type: application/json
+
+{
+  "nom": "Terrain Test",
+  "adresse": "Test Address",
+  "proprietaireId": 1
+}
+# Devrait accepter, heures null = pas de validation
+
+
+### ================================
+### 10. SCÉNARIO COMPLET
+### ================================
+
+### ÉTAPE 1: Créer un propriétaire
+POST {{baseUrl}}/proprietaires
+Content-Type: application/json
+
+{
+  "nom": "Test",
+  "prenom": "Proprietaire",
+  "telephone": 777888999,
+  "password": "test123"
+}
+
+### ÉTAPE 2: Créer un terrain
+POST {{baseUrl}}/terrains
+Content-Type: application/json
+
+{
+  "nom": "Terrain de Test",
+  "adresse": "123 Rue Test",
+  "proprietaireId": 1,
+  "heureOuverture": "08:00",
+  "heureFermeture": "22:00"
+}
+
+### ÉTAPE 3: Créer un client
+POST {{baseUrl}}/clients-abonnes
+Content-Type: application/json
+
+{
+  "nom": "Client",
+  "prenom": "Test",
+  "telephone": 111222333
+}
+
+### ÉTAPE 4: Créer un abonnement
+POST {{baseUrl}}/abonnements
+Content-Type: application/json
+
+{
+  "terrainId": 1,
+  "clientTelephone": 111222333,
+  "dateDebut": "2026-01-20",
+  "dateFin": "2026-02-20",
+  "horaires": [
+    {
+      "jourSemaine": "LUNDI",
+      "heureDebut": "10:00",
+      "prixHeure": 1500
+    }
+  ]
+}
+
+### ÉTAPE 5: Créer une réservation ponctuelle
+POST {{baseUrl}}/reservations-ponctuelles
+Content-Type: application/json
+
+{
+  "date": "2026-01-22",
+  "heureDebut": "14:00",
+  "terrainId": 1,
+  "clientTelephone": 111222333,
+  "prix": 2000
+}
+
+### ÉTAPE 6: Vérifier les horaires occupés
+GET {{baseUrl}}/disponibilites/horaires-occupes
+
+### ÉTAPE 7: Vérifier les horaires indisponibles
+GET {{baseUrl}}/indisponibles/terrain/1
+
+### ================================
+### FIN DES TESTS
+### ================================
