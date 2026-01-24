@@ -77,6 +77,56 @@ public class AbonnementService {
      * ✅ CORRECTION : Les dates sont calculées de manière séquentielle pour maintenir
      * les paires de jours consécutifs (ex: JEUDI et VENDREDI)
      */
+    /**
+     * Calcule la prochaine date pour un jour de la semaine donné à partir d'une date de début
+     * et en ajoutant un nombre de semaines
+     * 
+     * Les semaines sont comptées depuis le lundi de la semaine de la date de début :
+     * - Semaine 0 : la semaine qui contient la date de début (du lundi au dimanche)
+     * - Semaine 1 : la semaine suivante (du lundi au dimanche)
+     * - etc.
+     * 
+     * Exemple: dateDebut = 15/01/2026 (jeudi), jourSemaine = JEUDI, numeroSemaine = 0
+     * Résultat: 15/01/2026 (le même jour)
+     * 
+     * Exemple: dateDebut = 15/01/2026 (jeudi), jourSemaine = JEUDI, numeroSemaine = 1
+     * Résultat: 22/01/2026 (jeudi de la semaine suivante)
+     * 
+     * Exemple: dateDebut = 24/01/2026 (vendredi), jourSemaine = LUNDI, numeroSemaine = 0
+     * Résultat: 27/01/2026 (lundi de la semaine 0, qui est la semaine de la date de début)
+     * 
+     * Exemple: dateDebut = 24/01/2026 (vendredi), jourSemaine = LUNDI, numeroSemaine = 1
+     * Résultat: 02/02/2026 (lundi de la semaine 1, calculé depuis la date de début)
+     * 
+     * ✅ CORRECTION : Les dates sont calculées de manière séquentielle pour maintenir
+     * les paires de jours consécutifs (ex: JEUDI et VENDREDI)
+     * ✅ Les semaines sont toujours comptées depuis le lundi de la semaine de la date de début
+     */
+    /**
+     * Calcule la prochaine date pour un jour de la semaine donné à partir d'une date de début
+     * et en ajoutant un nombre de semaines
+     * 
+     * Les semaines sont comptées depuis le lundi de la semaine de la date de début :
+     * - Semaine 0 : la première occurrence du jour dans la semaine de la date de début (ou après si le jour est avant la date de début)
+     * - Semaine 1 : la semaine suivante (7 jours après la semaine 0)
+     * - etc.
+     * 
+     * Exemple: dateDebut = 15/01/2026 (jeudi), jourSemaine = JEUDI, numeroSemaine = 0
+     * Résultat: 15/01/2026 (le même jour)
+     * 
+     * Exemple: dateDebut = 15/01/2026 (jeudi), jourSemaine = JEUDI, numeroSemaine = 1
+     * Résultat: 22/01/2026 (jeudi de la semaine suivante)
+     * 
+     * Exemple: dateDebut = 24/01/2026 (vendredi), jourSemaine = LUNDI, numeroSemaine = 0
+     * Résultat: 27/01/2026 (premier lundi après la date de début, dans la semaine de la date de début)
+     * 
+     * Exemple: dateDebut = 24/01/2026 (vendredi), jourSemaine = LUNDI, numeroSemaine = 1
+     * Résultat: 02/02/2026 (lundi de la semaine 1, 7 jours après la semaine 0)
+     * 
+     * ✅ CORRECTION : Les dates sont calculées de manière séquentielle pour maintenir
+     * les paires de jours consécutifs (ex: JEUDI et VENDREDI)
+     * ✅ Les semaines sont toujours comptées depuis la première occurrence du jour après ou égal à la date de début
+     */
     private LocalDate calculerDateHoraire(LocalDate dateDebut, JourSemaine jourSemaine, int numeroSemaine) {
         if (dateDebut == null) {
             return null;
@@ -85,7 +135,7 @@ public class AbonnementService {
         DayOfWeek jourCible = jourSemaineToJavaDayOfWeek(jourSemaine);
         DayOfWeek jourActuel = dateDebut.getDayOfWeek();
         
-        // Calculer le nombre de jours jusqu'au prochain jour cible
+        // Calculer le nombre de jours jusqu'au prochain jour cible (ou le même jour si c'est déjà le bon jour)
         int joursJusquauProchainJour = (jourCible.getValue() - jourActuel.getValue() + 7) % 7;
         
         // Si c'est le même jour et qu'on est à la semaine 0, utiliser la date de début
@@ -98,11 +148,75 @@ public class AbonnementService {
             joursJusquauProchainJour = 7; // Aller à la semaine suivante
         }
         
-        // Calculer la première occurrence du jour cible
+        // Calculer la première occurrence du jour cible (semaine 0)
         LocalDate premiereOccurrence = dateDebut.plusDays(joursJusquauProchainJour);
         
         // Ajouter les semaines supplémentaires à partir de la première occurrence
         LocalDate dateHoraire = premiereOccurrence.plusWeeks(numeroSemaine);
+        
+        return dateHoraire;
+    }
+    
+    /**
+     * Calcule la date de l'horaire et la décale automatiquement vers le futur si elle est dans le passé.
+     * Si la date calculée est dans le passé ou si c'est aujourd'hui mais que l'heure de fin est passée,
+     * la date est décalée vers la prochaine occurrence valide du même jour de la semaine.
+     * Préserve l'écart relatif entre les horaires (si deux horaires sont à 1 semaine d'écart, ils le restent).
+     * 
+     * @param dateDebut La date de début de l'abonnement
+     * @param jourSemaine Le jour de la semaine de l'horaire
+     * @param numeroSemaine Le numéro de semaine (0 = première semaine)
+     * @param heureFin L'heure de fin de l'horaire (peut être null)
+     * @return La date calculée, décalée vers le futur si nécessaire
+     */
+    private LocalDate calculerDateHoraireAvecDecalage(LocalDate dateDebut, JourSemaine jourSemaine, int numeroSemaine, java.time.LocalTime heureFin) {
+        if (dateDebut == null) {
+            return null;
+        }
+        
+        // Calculer la date initiale basée sur la date de début
+        LocalDate dateHoraire = calculerDateHoraire(dateDebut, jourSemaine, numeroSemaine);
+        if (dateHoraire == null) {
+            return null;
+        }
+        
+        LocalDate aujourdhui = LocalDate.now();
+        java.time.LocalTime maintenant = java.time.LocalTime.now();
+        java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
+        
+        // Si la date est dans le passé, la décale vers le futur en préservant l'écart relatif
+        if (dateHoraire.isBefore(aujourdhui)) {
+            // Calculer combien de jours se sont écoulés depuis la date calculée
+            long joursEcoules = java.time.temporal.ChronoUnit.DAYS.between(dateHoraire, aujourdhui);
+            
+            // Calculer combien de semaines complètes se sont écoulées
+            long semainesEcoulees = joursEcoules / 7;
+            
+            // Ajouter au moins une semaine supplémentaire pour être dans le futur
+            long semainesAAjouter = semainesEcoulees + 1;
+            
+            // Si on est le même jour de la semaine aujourd'hui, on peut utiliser aujourd'hui
+            // (mais on vérifiera l'heure après)
+            DayOfWeek jourCible = jourSemaineToJavaDayOfWeek(jourSemaine);
+            DayOfWeek jourAujourdhui = aujourdhui.getDayOfWeek();
+            
+            if (jourCible == jourAujourdhui && semainesEcoulees == 0) {
+                // C'est le même jour aujourd'hui et on est dans la même semaine
+                dateHoraire = aujourdhui;
+            } else {
+                // Décaler vers le futur en préservant l'écart relatif
+                dateHoraire = dateHoraire.plusWeeks(semainesAAjouter);
+            }
+        }
+        
+        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas passée
+        if (dateHoraire.equals(aujourdhui) && heureFin != null) {
+            // Si heureFin = minuit, c'est valide (fin de journée)
+            if (!heureFin.equals(minuit) && (heureFin.isBefore(maintenant) || heureFin.equals(maintenant))) {
+                // L'heure est passée, décaler vers la semaine suivante (même jour de la semaine)
+                dateHoraire = dateHoraire.plusWeeks(1);
+            }
+        }
         
         return dateHoraire;
     }
@@ -366,8 +480,8 @@ public class AbonnementService {
             throw new IllegalArgumentException("Au moins un horaire est obligatoire pour créer un abonnement");
         }
         
-        // ✅ VALIDATION : Vérifier que la date de début n'est pas dans le passé
-        validerDateDebutNonPassee(dto.getDateDebut());
+        // ✅ CORRECTION : Permettre la création d'abonnement avec une date de début passée
+        // Seuls les horaires non passés seront générés
 
         Abonnement abonnement = new Abonnement();
 
@@ -396,11 +510,12 @@ public class AbonnementService {
         List<AbonnementHoraire> horairesRepetitifs = new ArrayList<>();
         
         if (dto.getHoraires() != null && !dto.getHoraires().isEmpty()) {
-            // ✅ CORRECTION : Calculer d'abord la première occurrence de chaque jour
-            // pour maintenir la séquence des jours consécutifs
+            // ✅ CORRECTION : Calculer d'abord toutes les premières occurrences (semaine 0)
+            // pour préserver l'ordre séquentiel des jours dans chaque semaine
             java.util.Map<JourSemaine, LocalDate> premieresOccurrences = new java.util.HashMap<>();
             for (AbonnementHoraireDTO hdto : dto.getHoraires()) {
                 if (!premieresOccurrences.containsKey(hdto.getJourSemaine())) {
+                    // Calculer la première occurrence de ce jour à partir de la date de début
                     LocalDate premiereOccurrence = calculerDateHoraire(dto.getDateDebut(), hdto.getJourSemaine(), 0);
                     premieresOccurrences.put(hdto.getJourSemaine(), premiereOccurrence);
                 }
@@ -423,33 +538,37 @@ public class AbonnementService {
                     }
                     
                     // *** CALCUL DE LA DATE PRECISE ***
-                    // ✅ CORRECTION : Utiliser la première occurrence et ajouter les semaines
+                    // ✅ CORRECTION : Utiliser la première occurrence calculée et ajouter les semaines
+                    // Cela garantit que l'ordre séquentiel des jours est préservé dans chaque semaine
                     LocalDate premiereOccurrence = premieresOccurrences.get(hdto.getJourSemaine());
                     LocalDate dateHoraire = premiereOccurrence != null ? premiereOccurrence.plusWeeks(semaine) : null;
                     
-                    // ✅ VALIDATION : Vérifier que la date de l'horaire n'est pas dans le passé
-                    // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
+                    // ✅ VALIDATION : Ne générer que les horaires non passés
                     if (dateHoraire != null) {
                         LocalDate aujourdhui = LocalDate.now();
+                        java.time.LocalTime maintenant = java.time.LocalTime.now();
+                        java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
+                        
+                        // Si la date est dans le passé, ne pas créer cet horaire
                         if (dateHoraire.isBefore(aujourdhui)) {
-                            throw new IllegalArgumentException(
-                                String.format("Impossible de créer un horaire d'abonnement avec une date passée. " +
-                                             "La date calculée %s (jour: %s, semaine: %d) est antérieure à aujourd'hui (%s)",
-                                    dateHoraire, hdto.getJourSemaine(), semaine, aujourdhui)
-                            );
+                            continue;
                         }
-                        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
+                        
+                        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas passée
                         if (dateHoraire.equals(aujourdhui) && heureFin != null) {
-                            java.time.LocalTime maintenant = java.time.LocalTime.now();
-                            java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
-                            
                             // Si heureFin = minuit, c'est valide (fin de journée)
                             if (!heureFin.equals(minuit) && (heureFin.isBefore(maintenant) || heureFin.equals(maintenant))) {
-                                throw new IllegalArgumentException(
-                                    String.format("Impossible de créer un horaire d'abonnement dont l'heure de fin (%s) est déjà passée. Il est actuellement %s",
-                                        heureFin, maintenant)
-                                );
+                                // L'heure est passée, ne pas créer cet horaire
+                                continue;
                             }
+                        }
+                    }
+                    
+                    // ✅ VALIDATION : Ne générer que les horaires dans la période valide (dateDebut <= date <= dateFin)
+                    if (dateHoraire != null && dto.getDateFin() != null) {
+                        if (dateHoraire.isAfter(dto.getDateFin())) {
+                            // Cette date dépasse la date de fin, ne pas créer cet horaire
+                            continue;
                         }
                     }
                     
@@ -540,22 +659,27 @@ public class AbonnementService {
         // Garder trace des dates modifiées
         boolean datesModifiees = false;
         boolean dateDebutModifiee = false;
+        
         LocalDate ancienneDateDebut = abonnement.getDateDebut();
         
         if (dto.getDateDebut() != null) {
-            // ✅ VALIDATION : Vérifier que la date de début n'est pas dans le passé
-            validerDateDebutNonPassee(dto.getDateDebut());
+        
+            // ❌ SUPPRIMER la validation bloquante
+            // validerDateDebutNonPassee(dto.getDateDebut());
+        
             // Vérifier si la date de début a vraiment changé
             if (!dto.getDateDebut().equals(ancienneDateDebut)) {
                 dateDebutModifiee = true;
+                datesModifiees = true;
+                abonnement.setDateDebut(dto.getDateDebut());
             }
-            abonnement.setDateDebut(dto.getDateDebut());
-            datesModifiees = true;
         }
+        
         if (dto.getDateFin() != null) {
             abonnement.setDateFin(dto.getDateFin());
             datesModifiees = true;
         }
+        
         
         // ✅ NOUVEAU : Si la date de début a changé mais les horaires ne sont pas fournis,
         // mettre à jour les dates des horaires existants avec la nouvelle date de début
@@ -583,16 +707,6 @@ public class AbonnementService {
                 }
             }
             
-            // Calculer d'abord la première occurrence de chaque jour avec la nouvelle date de début
-            java.util.Map<JourSemaine, LocalDate> premieresOccurrences = new java.util.HashMap<>();
-            for (java.util.Map.Entry<JourSemaine, java.time.LocalTime> config : configurationsUniques) {
-                JourSemaine jour = config.getKey();
-                if (!premieresOccurrences.containsKey(jour)) {
-                    LocalDate premiereOccurrence = calculerDateHoraire(abonnement.getDateDebut(), jour, 0);
-                    premieresOccurrences.put(jour, premiereOccurrence);
-                }
-            }
-            
             // Mettre à jour les dates de chaque horaire existant en préservant la séquence
             // On parcourt les horaires dans l'ordre et on calcule la semaine en fonction de leur position
             int indexGlobal = 0;
@@ -606,35 +720,13 @@ public class AbonnementService {
                     int semaine = nombreConfigs > 0 ? (indexGlobal / nombreConfigs) : 0;
                     
                     // Calculer la nouvelle date basée sur la nouvelle date de début
-                    LocalDate premiereOccurrence = premieresOccurrences.get(jour);
-                    LocalDate nouvelleDate = premiereOccurrence != null ? premiereOccurrence.plusWeeks(semaine) : null;
-                    
-                    // ✅ VALIDATION : Vérifier que la date n'est pas dans le passé
-                    // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
-                    if (nouvelleDate != null) {
-                        LocalDate aujourdhui = LocalDate.now();
-                        if (nouvelleDate.isBefore(aujourdhui)) {
-                            throw new IllegalArgumentException(
-                                String.format("Impossible de mettre à jour un horaire avec une date passée. " +
-                                             "La date calculée %s (jour: %s, semaine: %d) est antérieure à aujourd'hui (%s)",
-                                    nouvelleDate, jour, semaine, aujourdhui)
-                            );
-                        }
-                        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
-                        if (nouvelleDate.equals(aujourdhui) && horaire.getHeureFin() != null) {
-                            java.time.LocalTime maintenant = java.time.LocalTime.now();
-                            java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
-                            
-                            // Si heureFin = minuit, c'est valide (fin de journée)
-                            if (!horaire.getHeureFin().equals(minuit) && 
-                                (horaire.getHeureFin().isBefore(maintenant) || horaire.getHeureFin().equals(maintenant))) {
-                                throw new IllegalArgumentException(
-                                    String.format("Impossible de mettre à jour un horaire dont l'heure de fin (%s) est déjà passée. Il est actuellement %s",
-                                        horaire.getHeureFin(), maintenant)
-                                );
-                            }
-                        }
-                    }
+                    // ✅ CORRECTION : Utiliser la méthode avec décalage automatique pour les dates passées
+                    LocalDate nouvelleDate = calculerDateHoraireAvecDecalage(
+                        abonnement.getDateDebut(), 
+                        jour, 
+                        semaine, 
+                        horaire.getHeureFin()
+                    );
                     
                     // ✅ VALIDATION : Vérifier les conflits (seulement si la date change vraiment)
                     if (horaire.getDate() == null || !horaire.getDate().equals(nouvelleDate)) {
@@ -673,33 +765,15 @@ public class AbonnementService {
         }
         
         // Horaires
-        if (dto.getHoraires() != null) {
-            // ✅ CORRECTION : Supprimer explicitement tous les anciens horaires de la base de données
-            // avant de créer les nouveaux pour éviter les problèmes de synchronisation
-            List<AbonnementHoraire> anciensHoraires = new ArrayList<>(abonnement.getHoraires());
-            abonnement.getHoraires().clear();
-            // Supprimer explicitement de la base pour que la synchronisation ne les lise pas
-            if (!anciensHoraires.isEmpty()) {
-                abonnementHoraireRepository.deleteAll(anciensHoraires);
-                entityManager.flush(); // Forcer la suppression avant de continuer
-            }
+        if (dto.getHoraires() != null && !dto.getHoraires().isEmpty()) {
+            // ✅ CORRECTION : Ajouter les nouveaux horaires aux horaires existants
+            // ❌ INTERDIT : Ne jamais utiliser setHoraires() avec orphanRemoval = true
+            // ✅ OBLIGATOIRE : Toujours modifier la liste existante avec add()
+            // Les horaires existants sont conservés, on ajoute seulement les nouveaux
 
             // *** GENERATION DES HORAIRES REPETITIFS ***
             // Calculer le nombre de semaines
             long nombreSemaines = calculerNombreSemaines(abonnement.getDateDebut(), abonnement.getDateFin());
-            
-            // Générer tous les horaires répétés pour toutes les semaines
-            List<AbonnementHoraire> horairesRepetitifs = new ArrayList<>();
-            
-            // ✅ CORRECTION : Calculer d'abord la première occurrence de chaque jour
-            // pour maintenir la séquence des jours consécutifs
-            java.util.Map<JourSemaine, LocalDate> premieresOccurrences = new java.util.HashMap<>();
-            for (AbonnementHoraireDTO hdto : dto.getHoraires()) {
-                if (!premieresOccurrences.containsKey(hdto.getJourSemaine())) {
-                    LocalDate premiereOccurrence = calculerDateHoraire(abonnement.getDateDebut(), hdto.getJourSemaine(), 0);
-                    premieresOccurrences.put(hdto.getJourSemaine(), premiereOccurrence);
-                }
-            }
             
             // Pour chaque semaine (de 0 à nombreSemaines-1)
             for (int semaine = 0; semaine < nombreSemaines; semaine++) {
@@ -718,33 +792,38 @@ public class AbonnementService {
                     }
                     
                     // *** CALCUL DE LA DATE PRECISE ***
-                    // ✅ CORRECTION : Utiliser la première occurrence et ajouter les semaines
-                    LocalDate premiereOccurrence = premieresOccurrences.get(hdto.getJourSemaine());
-                    LocalDate dateHoraire = premiereOccurrence != null ? premiereOccurrence.plusWeeks(semaine) : null;
+                    // ✅ CORRECTION : Calculer directement la date pour chaque semaine depuis la date de début
+                    // Cela garantit que les dates sont correctement réparties dans chaque semaine successive
+                    // et que l'ordre séquentiel des jours est préservé dans chaque semaine
+                    LocalDate dateHoraire = calculerDateHoraire(abonnement.getDateDebut(), hdto.getJourSemaine(), semaine);
                     
-                    // ✅ VALIDATION : Vérifier que la date de l'horaire n'est pas dans le passé
-                    // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
+                    // ✅ VALIDATION : Ne créer que les horaires non passés
+                    // On utilise toujours la date de début comme référence, mais on ne crée pas les horaires passés
                     if (dateHoraire != null) {
                         LocalDate aujourdhui = LocalDate.now();
+                        java.time.LocalTime maintenant = java.time.LocalTime.now();
+                        java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
+                        
+                        // Si la date est dans le passé, ne pas créer cet horaire
                         if (dateHoraire.isBefore(aujourdhui)) {
-                            throw new IllegalArgumentException(
-                                String.format("Impossible de modifier un horaire d'abonnement avec une date passée. " +
-                                             "La date calculée %s (jour: %s, semaine: %d) est antérieure à aujourd'hui (%s)",
-                                    dateHoraire, hdto.getJourSemaine(), semaine, aujourdhui)
-                            );
+                            continue; // Ne pas créer les horaires passés
                         }
-                        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas encore passée
+                        
+                        // Si c'est aujourd'hui, vérifier que l'heure de fin n'est pas passée
                         if (dateHoraire.equals(aujourdhui) && heureFin != null) {
-                            java.time.LocalTime maintenant = java.time.LocalTime.now();
-                            java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
-                            
                             // Si heureFin = minuit, c'est valide (fin de journée)
                             if (!heureFin.equals(minuit) && (heureFin.isBefore(maintenant) || heureFin.equals(maintenant))) {
-                                throw new IllegalArgumentException(
-                                    String.format("Impossible de modifier un horaire d'abonnement dont l'heure de fin (%s) est déjà passée. Il est actuellement %s",
-                                        heureFin, maintenant)
-                                );
+                                // L'heure est passée, ne pas créer cet horaire
+                                continue;
                             }
+                        }
+                    }
+                    
+                    // ✅ VALIDATION : Ne créer que les horaires dans la période valide (dateDebut <= date <= dateFin)
+                    if (dateHoraire != null && abonnement.getDateFin() != null) {
+                        if (dateHoraire.isAfter(abonnement.getDateFin())) {
+                            // Cette date dépasse la date de fin, ne pas créer cet horaire
+                            continue;
                         }
                     }
                     
@@ -768,22 +847,26 @@ public class AbonnementService {
                         }
                     }
                     
+                    // ✅ CRÉER le nouvel horaire
                     AbonnementHoraire h = new AbonnementHoraire();
+                    // 🔴 TRÈS IMPORTANT : Définir la relation bidirectionnelle
                     h.setAbonnement(abonnement);
                     h.setJourSemaine(hdto.getJourSemaine());
                     h.setDate(dateHoraire);
                     h.setHeureDebut(heureDebut);
                     h.setHeureFin(heureFin);
                     h.setPrixHeure(hdto.getPrixHeure());
-                    horairesRepetitifs.add(h);
+                    
+                    // ✅ AJOUTER directement à la liste existante (NE JAMAIS utiliser setHoraires())
+                    // ❌ INTERDIT : abonnement.setHoraires(horairesRepetitifs);
+                    // ✅ OBLIGATOIRE : Utiliser add() sur la liste existante
+                    abonnement.getHoraires().add(h);
                 }
             }
 
-            abonnement.setHoraires(horairesRepetitifs);
-            
             // *** RECALCUL AUTOMATIQUE DU PRIX TOTAL ***
             // Le prix total = somme de TOUS les horaires répétés
-            BigDecimal prixTotal = horairesRepetitifs.stream()
+            BigDecimal prixTotal = abonnement.getHoraires().stream()
                     .map(AbonnementHoraire::getPrixHeure)
                     .filter(prix -> prix != null)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);

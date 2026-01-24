@@ -1,27 +1,39 @@
 package com.matchi.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfigurationSource;
 
+/**
+ * Configuration Spring Security
+ * ✅ Compatible avec PWA mobile (iOS/Safari) + CORS + credentials
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
+    private CorsConfigurationSource corsConfigurationSource;
+
     /**
-     * Configuration de Spring Security pour désactiver l'authentification automatique
-     * et permettre l'accès à tous les endpoints
+     * Configuration de Spring Security
+     * ✅ CRITIQUE : Utiliser corsConfigurationSource() pour que CORS fonctionne avec credentials sur mobile
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configure(http)) // ✅ Activer CORS
-            .csrf(csrf -> csrf.disable()) // Désactiver CSRF pour les API REST
+            // ✅ CRITIQUE : Configurer CORS avec la source (nécessaire pour mobile + credentials)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource))
+            // Désactiver CSRF pour les API REST (on utilise JWT à la place)
+            .csrf(csrf -> csrf.disable())
+            // Autoriser toutes les requêtes (peut être modifié plus tard pour protéger certains endpoints)
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // Permettre toutes les requêtes sans authentification
+                .anyRequest().permitAll()
             );
         
         return http.build();

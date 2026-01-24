@@ -46,19 +46,53 @@ public class StatistiqueService {
 
     /**
      * Retourne le nombre de réservations ponctuelles d'aujourd'hui pour un terrain donné
+     * Inclut les réservations d'aujourd'hui et les réservations de demain qui commencent après minuit
+     * (jusqu'à l'heure de fin du terrain)
      */
     public Long getNombreReservationsAujourdhui(Long terrainId) {
         // Vérifier que le terrain existe
-        terrainServiceRepository.findById(terrainId)
+        com.matchi.model.TerrainService terrain = terrainServiceRepository.findById(terrainId)
                 .orElseThrow(() -> new IllegalArgumentException("Terrain introuvable avec l'ID: " + terrainId));
         
         LocalDate aujourdhui = LocalDate.now();
+        LocalDate demain = aujourdhui.plusDays(1);
         List<ReservationPonctuelle> reservations = reservationPonctuelleRepository.findByTerrain_Id(terrainId);
         
-        // Filtrer les réservations d'aujourd'hui
-        return reservations.stream()
+        java.time.LocalTime heureFermeture = terrain.getHeureFermeture();
+        java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
+        
+        // Compter les réservations d'aujourd'hui
+        long countAujourdhui = reservations.stream()
                 .filter(reservation -> reservation.getDate() != null && reservation.getDate().equals(aujourdhui))
                 .count();
+        
+        // Inclure aussi les réservations de demain qui commencent après minuit jusqu'à l'heure de fin
+        long countDemainMatin = 0;
+        if (heureFermeture != null) {
+            countDemainMatin = reservations.stream()
+                    .filter(reservation -> reservation.getDate() != null && reservation.getDate().equals(demain))
+                    .filter(reservation -> {
+                        if (reservation.getHeureDebut() == null) {
+                            return false;
+                        }
+                        java.time.LocalTime heureDebut = reservation.getHeureDebut();
+                        // Si le terrain ferme après minuit (ex: 18h -> 2h), inclure les heures entre 00:00 et heureFermeture
+                        // Si le terrain ferme avant minuit (ex: 8h -> 22h), inclure les heures entre 00:00 et heureFermeture
+                        // Vérifier si l'heure de début est >= 00:00 et <= heureFermeture
+                        boolean apresMinuit = heureDebut.equals(minuit) || heureDebut.isAfter(minuit);
+                        boolean avantFermeture = heureDebut.equals(heureFermeture) || heureDebut.isBefore(heureFermeture);
+                        
+                        // Si heureFermeture est minuit, on considère que c'est la fin de journée (24h)
+                        if (heureFermeture.equals(minuit)) {
+                            return apresMinuit; // Toutes les heures après minuit sont incluses
+                        }
+                        
+                        return apresMinuit && avantFermeture;
+                    })
+                    .count();
+        }
+        
+        return countAujourdhui + countDemainMatin;
     }
 
     /**
@@ -133,19 +167,53 @@ public class StatistiqueService {
     
     /**
      * Retourne le nombre de réservations ponctuelles d'hier pour un terrain donné
+     * Inclut les réservations d'hier et les réservations d'aujourd'hui qui commencent après minuit
+     * (jusqu'à l'heure de fin du terrain)
      */
     public Long getNombreReservationsHier(Long terrainId) {
         // Vérifier que le terrain existe
-        terrainServiceRepository.findById(terrainId)
+        com.matchi.model.TerrainService terrain = terrainServiceRepository.findById(terrainId)
                 .orElseThrow(() -> new IllegalArgumentException("Terrain introuvable avec l'ID: " + terrainId));
         
         LocalDate hier = LocalDate.now().minusDays(1);
+        LocalDate aujourdhui = LocalDate.now();
         List<ReservationPonctuelle> reservations = reservationPonctuelleRepository.findByTerrain_Id(terrainId);
         
-        // Filtrer les réservations d'hier
-        return reservations.stream()
+        java.time.LocalTime heureFermeture = terrain.getHeureFermeture();
+        java.time.LocalTime minuit = java.time.LocalTime.of(0, 0);
+        
+        // Compter les réservations d'hier
+        long countHier = reservations.stream()
                 .filter(reservation -> reservation.getDate() != null && reservation.getDate().equals(hier))
                 .count();
+        
+        // Inclure aussi les réservations d'aujourd'hui qui commencent après minuit jusqu'à l'heure de fin
+        long countAujourdhuiMatin = 0;
+        if (heureFermeture != null) {
+            countAujourdhuiMatin = reservations.stream()
+                    .filter(reservation -> reservation.getDate() != null && reservation.getDate().equals(aujourdhui))
+                    .filter(reservation -> {
+                        if (reservation.getHeureDebut() == null) {
+                            return false;
+                        }
+                        java.time.LocalTime heureDebut = reservation.getHeureDebut();
+                        // Si le terrain ferme après minuit (ex: 18h -> 2h), inclure les heures entre 00:00 et heureFermeture
+                        // Si le terrain ferme avant minuit (ex: 8h -> 22h), inclure les heures entre 00:00 et heureFermeture
+                        // Vérifier si l'heure de début est >= 00:00 et <= heureFermeture
+                        boolean apresMinuit = heureDebut.equals(minuit) || heureDebut.isAfter(minuit);
+                        boolean avantFermeture = heureDebut.equals(heureFermeture) || heureDebut.isBefore(heureFermeture);
+                        
+                        // Si heureFermeture est minuit, on considère que c'est la fin de journée (24h)
+                        if (heureFermeture.equals(minuit)) {
+                            return apresMinuit; // Toutes les heures après minuit sont incluses
+                        }
+                        
+                        return apresMinuit && avantFermeture;
+                    })
+                    .count();
+        }
+        
+        return countHier + countAujourdhuiMatin;
     }
     
     /**

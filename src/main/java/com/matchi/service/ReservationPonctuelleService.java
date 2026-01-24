@@ -448,14 +448,25 @@ public class ReservationPonctuelleService {
         ReservationPonctuelle existing = reservationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Réservation introuvable"));
 
+        // Sauvegarder les valeurs originales pour détecter les changements de créneau
+        java.time.LocalDate dateOriginale = existing.getDate();
+        java.time.LocalTime heureDebutOriginale = existing.getHeureDebut();
+        java.time.LocalTime heureFinOriginale = existing.getHeureFin();
+        Long terrainIdOriginal = existing.getTerrain() != null ? existing.getTerrain().getId() : null;
+        
+        // Flag pour savoir si le créneau a changé
+        boolean creneauModifie = false;
+
         // Mise à jour partielle - uniquement les champs non-null
-        if (dto.date() != null) {
+        if (dto.date() != null && !dto.date().equals(dateOriginale)) {
             existing.setDate(dto.date());
+            creneauModifie = true;
         }
-        if (dto.heureDebut() != null) {
+        if (dto.heureDebut() != null && !dto.heureDebut().equals(heureDebutOriginale)) {
             existing.setHeureDebut(dto.heureDebut());
             // Calcul automatique de heureFin = heureDebut + 1 heure
             existing.setHeureFin(dto.heureDebut().plusHours(1));
+            creneauModifie = true;
             
             // ✅ VALIDATION : vérifier les horaires si le terrain existe
             if (existing.getTerrain() != null) {
@@ -466,6 +477,7 @@ public class ReservationPonctuelleService {
         // ✅ VALIDATION : Vérifier que la date et l'heure ne sont pas dans le passé (après mise à jour)
         // Utiliser l'heure de fin pour valider (on peut réserver si l'heure de fin n'est pas encore passée)
         validerDateEtHeureNonPassees(existing.getDate(), existing.getHeureDebut(), existing.getHeureFin());
+        
         if (dto.prix() != null) {
             existing.setPrix(dto.prix());
         }
@@ -473,7 +485,7 @@ public class ReservationPonctuelleService {
             existing.setClientTelephone(dto.clientTelephone());
         }
 
-        if (dto.terrainId() != null) {
+        if (dto.terrainId() != null && !dto.terrainId().equals(terrainIdOriginal)) {
             TerrainService terrain = terrainServiceRepository.findById(dto.terrainId())
                     .orElseThrow(() -> new IllegalArgumentException("Terrain non trouvé"));
             
@@ -481,10 +493,12 @@ public class ReservationPonctuelleService {
             validerHoraires(terrain, existing.getHeureDebut(), existing.getHeureFin());
             
             existing.setTerrain(terrain);
+            creneauModifie = true;
         }
 
-        // ✅ VALIDATION : Vérifier les conflits après mise à jour
-        if (existing.getTerrain() != null && existing.getDate() != null 
+        // ✅ VALIDATION : Vérifier les conflits SEULEMENT si le créneau a été modifié
+        // Si on modifie seulement le prix ou le téléphone, pas besoin de vérifier les conflits
+        if (creneauModifie && existing.getTerrain() != null && existing.getDate() != null 
             && existing.getHeureDebut() != null && existing.getHeureFin() != null) {
             validerConflitReservation(
                 existing.getTerrain().getId(),

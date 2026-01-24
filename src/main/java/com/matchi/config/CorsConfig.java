@@ -3,66 +3,83 @@ package com.matchi.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.util.Arrays;
 
 /**
- * Configuration CORS pour permettre la communication avec le front-end Angular
+ * Configuration CORS pour permettre la communication avec le front-end Angular et PWA mobile
+ * ✅ Compatible avec Spring Security + credentials + mobile (iOS/Safari)
  */
 @Configuration
 public class CorsConfig {
 
+    /**
+     * Configuration CORS source pour Spring Security
+     * ⚠️ IMPORTANT : Utiliser setAllowedOriginPatterns au lieu de setAllowedOrigins
+     * pour supporter les PWA mobiles avec des origines dynamiques
+     */
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
 
-        // Permettre les credentials (cookies, authorization headers)
+        // ✅ CRITIQUE : Permettre les credentials (cookies, authorization headers, JWT)
         config.setAllowCredentials(true);
-
-        // Origines autorisées (Angular en développement et production)
-        config.setAllowedOrigins(Arrays.asList(
-                "http://localhost:4200",     // Angular dev server
-                "http://localhost:55264",     // Angular dev server alternatif
-                "http://127.0.0.1:4200",     // Alias localhost
-                "http://localhost:3000"      // Au cas où
+        config.setAllowedOriginPatterns(Arrays.asList(
+        "http://localhost:*",
+        "http://172.*.*.*:*",
+        "http://localhost:4200"
         ));
 
-        // Headers autorisés
+        // ✅ Headers autorisés (essentiels pour mobile + credentials)
         config.setAllowedHeaders(Arrays.asList(
                 "Origin",
                 "Content-Type",
                 "Accept",
-                "Authorization",
+                "Authorization",           // ✅ Critique pour JWT
+                "X-Requested-With",
                 "Access-Control-Request-Method",
                 "Access-Control-Request-Headers",
-                "X-Requested-With"
+                "X-CSRF-TOKEN"            // Si CSRF est activé plus tard
         ));
 
-        // Méthodes HTTP autorisées
+        // ✅ Méthodes HTTP autorisées
         config.setAllowedMethods(Arrays.asList(
                 "GET",
                 "POST",
                 "PUT",
                 "DELETE",
                 "OPTIONS",
-                "PATCH"
+                "PATCH",
+                "HEAD"
         ));
 
-        // Headers exposés au client
+        // ✅ Headers exposés au client (importants pour mobile)
         config.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Disposition"
+                "Authorization",          // ✅ Pour récupérer le JWT token
+                "Content-Disposition",
+                "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials"
         ));
 
-        // Durée de cache de la configuration CORS (en secondes)
+        // ✅ Durée de cache pour preflight requests (mobile-friendly)
         config.setMaxAge(3600L);
 
         // Appliquer la configuration à tous les endpoints
         source.registerCorsConfiguration("/**", config);
 
-        return new CorsFilter(source);
+        return source;
+    }
+
+    /**
+     * Filtre CORS supplémentaire (optionnel, pour compatibilité)
+     * Spring Security utilisera corsConfigurationSource() en priorité
+     */
+    @Bean
+    public CorsFilter corsFilter() {
+        return new CorsFilter(corsConfigurationSource());
     }
 }
