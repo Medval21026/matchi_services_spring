@@ -22,7 +22,7 @@ public class Proprietaire {
     private Integer telephone;
 
     private String password;
-    @Column(name = "is_active")
+    @Column(name = "is_active", columnDefinition = "TINYINT(1) DEFAULT 0")
     private Boolean isActive;
 
     private LocalDateTime createdAt = LocalDateTime.now();

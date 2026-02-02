@@ -13,8 +13,6 @@ import org.springframework.core.env.Environment;
  * Diagnostic des variables d'environnement - s'exécute AVANT la création de la DataSource
  * pour afficher les variables même si la connexion échoue
  */
-@Configuration
-@Order(Ordered.HIGHEST_PRECEDENCE)
 public class EnvironmentDiagnostic implements ApplicationListener<ApplicationEnvironmentPreparedEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(EnvironmentDiagnostic.class);
