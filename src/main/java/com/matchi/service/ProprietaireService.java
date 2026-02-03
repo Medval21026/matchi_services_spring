@@ -25,6 +25,19 @@ public class ProprietaireService {
 
     // ================== CREATE ==================
     public ProprietaireDTO create(ProprietaireDTO dto) {
+        // Validation des champs obligatoires
+        if (dto.nom() == null || dto.nom().isBlank()) {
+            throw new RuntimeException("Le nom est obligatoire");
+        }
+        if (dto.prenom() == null || dto.prenom().isBlank()) {
+            throw new RuntimeException("Le prénom est obligatoire");
+        }
+        if (dto.telephone() == null) {
+            throw new RuntimeException("Le numéro de téléphone est obligatoire");
+        }
+        if (dto.password() == null || dto.password().isBlank()) {
+            throw new RuntimeException("Le mot de passe est obligatoire");
+        }
 
         if (proprietaireRepository.existsByTelephone(dto.telephone())) {
             throw new RuntimeException("Numéro de téléphone déjà utilisé");

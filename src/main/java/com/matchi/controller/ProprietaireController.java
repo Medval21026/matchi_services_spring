@@ -42,8 +42,12 @@ public class ProprietaireController {
     public ResponseEntity<ProprietaireDTO> createProprietaire(
             @RequestBody ProprietaireDTO dto
     ) {
-        ProprietaireDTO created = proprietaireService.create(dto);
-        return ResponseEntity.ok(created);
+        try {
+            ProprietaireDTO created = proprietaireService.create(dto);
+            return ResponseEntity.ok(created);
+        } catch (RuntimeException e) {
+            throw e; // Le GlobalExceptionHandler va gérer l'exception
+        }
     }
 
     // =======================
