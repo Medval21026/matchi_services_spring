@@ -10,6 +10,7 @@ import com.matchi.repository.TerrainServiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +25,7 @@ public class ProprietaireService {
     private final JwtService jwtService;
 
     // ================== CREATE ==================
+    @Transactional
     public ProprietaireDTO create(ProprietaireDTO dto) {
         // Validation des champs obligatoires
         if (dto.nom() == null || dto.nom().isBlank()) {
@@ -61,6 +63,7 @@ public class ProprietaireService {
     }
 
     // ================== UPDATE ==================
+    @Transactional
     public ProprietaireDTO update(Long id, ProprietaireDTO dto) {
 
         Proprietaire existing = proprietaireRepository.findById(id)
@@ -92,6 +95,7 @@ public class ProprietaireService {
     }
 
     // ================== DELETE ==================
+    @Transactional
     public void delete(Long id) {
         if (!proprietaireRepository.existsById(id)) {
             throw new RuntimeException("Propriétaire introuvable");

@@ -2,8 +2,10 @@ package com.matchi.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.TransactionException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -32,6 +34,30 @@ public class GlobalExceptionHandler {
         error.put("path", request.getDescription(false).replace("uri=", ""));
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler({TransactionException.class, DataAccessException.class})
+    public ResponseEntity<Map<String, Object>> handleTransactionException(Exception e, WebRequest request) {
+        logger.error("Erreur de transaction/base de données: {}", e.getMessage(), e);
+        
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        error.put("error", "Database Error");
+        error.put("message", "Erreur lors de l'accès à la base de données. Veuillez réessayer.");
+        error.put("path", request.getDescription(false).replace("uri=", ""));
+        
+        // En développement, exposer plus de détails
+        String activeProfile = System.getProperty("spring.profiles.active", "");
+        if (!"prod".equals(activeProfile)) {
+            error.put("exception", e.getClass().getName());
+            error.put("details", e.getMessage());
+            if (e.getCause() != null) {
+                error.put("cause", e.getCause().getMessage());
+            }
+        }
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
     @ExceptionHandler(Exception.class)
