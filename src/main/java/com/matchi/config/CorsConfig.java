@@ -29,12 +29,6 @@ public class CorsConfig {
         // ✅ CRITIQUE : Permettre les credentials (cookies, authorization headers, JWT)
         config.setAllowCredentials(true);
         config.setAllowedOriginPatterns(Arrays.asList(
-            // ✅ Développement local
-            "http://172.20.10.*",      // ✅ Autorise toutes les IPs du réseau 172.20.10.x avec n'importe quel port
-            "http://localhost:*",      // ✅ Localhost avec n'importe quel port
-            "http://127.0.0.1:*",      // ✅ 127.0.0.1 avec n'importe quel port
-            "http://192.168.*.*",      // ✅ Si vous utilisez un autre réseau local (optionnel)
-            // ✅ Production - Vercel
             "https://matchi-services-angular-afyy.vercel.app",  // ✅ URL Vercel principale
             "https://*.vercel.app"     // ✅ Toutes les sous-domaines Vercel (pour preview deployments)
         ));
