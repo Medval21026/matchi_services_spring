@@ -23,9 +23,13 @@ public class CorsConfig {
         config.setAllowCredentials(true);
 
         // Autoriser les origines Angular / Vercel
-        config.setAllowedOriginPatterns(Arrays.asList(
+        // ⚠️ IMPORTANT: Avec allowCredentials(true), on doit utiliser setAllowedOrigins (pas setAllowedOriginPatterns)
+        // et spécifier les origines exactes (pas de wildcards)
+        config.setAllowedOrigins(Arrays.asList(
             "https://matchi-services-angular-afyy.vercel.app",
-            "https://*.vercel.app"
+            "http://localhost:4200",
+            "http://localhost:4201",
+            "http://127.0.0.1:4200"
         ));
 
         // Méthodes HTTP autorisées
