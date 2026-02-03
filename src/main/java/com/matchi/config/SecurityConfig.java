@@ -12,6 +12,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 /**
  * Configuration Spring Security
  * ✅ Compatible avec PWA + CORS + credentials
+ * ✅ Support HTTPS via Railway proxy (configuré dans application-prod.properties)
  */
 @Configuration
 @EnableWebSecurity
