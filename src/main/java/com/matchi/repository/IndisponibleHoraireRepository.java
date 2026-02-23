@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface IndisponibleHoraireRepository extends JpaRepository<IndisponibleHoraire, Long> {
@@ -25,4 +27,7 @@ public interface IndisponibleHoraireRepository extends JpaRepository<Indisponibl
     
     // Supprimer par source (utile pour synchronisation)
     void deleteByTypeReservationAndSourceId(TypeReservation typeReservation, Long sourceId);
+    
+    // Trouver par UUID pour l'idempotence lors de la synchronisation
+    Optional<IndisponibleHoraire> findByUuid(UUID uuid);
 }

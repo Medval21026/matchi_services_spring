@@ -3,6 +3,7 @@ package com.matchi.controller;
 import com.matchi.dto.LoginRequestDTO;
 import com.matchi.dto.LoginResponseDTO;
 import com.matchi.dto.ProprietaireDTO;
+import com.matchi.dto.UpdatePasswordRequestDTO;
 import com.matchi.service.ProprietaireService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -78,5 +79,21 @@ public class ProprietaireController {
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequest) {
         LoginResponseDTO response = proprietaireService.login(loginRequest);
         return ResponseEntity.ok(response);
+    }
+
+    // =======================
+    // 🔹 Mettre à jour le mot de passe d'un propriétaire
+    // =======================
+    @PutMapping("/{id}/mot-de-passe")
+    public ResponseEntity<Void> updateMotPasseProprietaire(
+            @PathVariable Long id,
+            @RequestBody UpdatePasswordRequestDTO request
+    ) {
+        proprietaireService.updateMotPasseProprietaire(
+                id,
+                request.getMotDePasse(),
+                request.getNewMotDePasse()
+        );
+        return ResponseEntity.ok().build();
     }
 }

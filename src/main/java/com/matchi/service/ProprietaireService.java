@@ -140,6 +140,39 @@ public class ProprietaireService {
         return p;
     }
 
+    // ================== UPDATE MOT DE PASSE ==================
+    @Transactional
+    public void updateMotPasseProprietaire(Long idProprietaire, String motDePasse, String newMotDePasse) {
+        // Validation des paramètres
+        if (idProprietaire == null) {
+            throw new RuntimeException("L'ID du propriétaire est obligatoire");
+        }
+        if (motDePasse == null || motDePasse.isBlank()) {
+            throw new RuntimeException("L'ancien mot de passe est obligatoire");
+        }
+        if (newMotDePasse == null || newMotDePasse.isBlank()) {
+            throw new RuntimeException("Le nouveau mot de passe est obligatoire");
+        }
+        
+        // Trouver le propriétaire par ID
+        Proprietaire proprietaire = proprietaireRepository.findById(idProprietaire)
+                .orElseThrow(() -> new RuntimeException("Propriétaire introuvable avec l'ID: " + idProprietaire));
+        
+        // Vérifier que l'ancien mot de passe est correct
+        if (!passwordEncoder.matches(motDePasse, proprietaire.getPassword())) {
+            throw new RuntimeException("L'ancien mot de passe est incorrect");
+        }
+        
+        // Hacher le nouveau mot de passe
+        String hashedNewPassword = passwordEncoder.encode(newMotDePasse);
+        
+        // Mettre à jour le mot de passe
+        proprietaire.setPassword(hashedNewPassword);
+        
+        // Sauvegarder les modifications
+        proprietaireRepository.save(proprietaire);
+    }
+
     // ================== LOGIN ==================
     public LoginResponseDTO login(LoginRequestDTO loginRequest) {
         // Vérifier que les champs ne sont pas null

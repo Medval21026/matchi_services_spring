@@ -2,13 +2,13 @@ package com.matchi.service;
 
 import com.matchi.dto.DisponibiliteResponseDTO;
 import com.matchi.dto.HoraireOccupeDTO;
-import com.matchi.model.*;
-import com.matchi.repository.AbonnementHoraireRepository;
-import com.matchi.repository.ReservationPonctuelleRepository;
+import com.matchi.model.IndisponibleHoraire;
+import com.matchi.repository.IndisponibleHoraireRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 
@@ -16,73 +16,52 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DisponibiliteService {
 
-    private final AbonnementHoraireRepository abonnementHoraireRepository;
-    private final ReservationPonctuelleRepository reservationPonctuelleRepository;
+    private final IndisponibleHoraireRepository indisponibleHoraireRepository;
 
     /**
-     * Récupère TOUS les horaires occupés de TOUS les terrains
-     * 
-     * @return DisponibiliteResponseDTO avec tous les horaires occupés
+     * Retourne tous les horaires indisponibles d'un terrain donné,
+     * avec la date, l'heure de début, l'heure de fin et le numéro de téléphone
+     * du propriétaire associé au terrain.
      */
-    public DisponibiliteResponseDTO getTousLesHorairesOccupes() {
-        List<HoraireOccupeDTO> horairesOccupes = new ArrayList<>();
+    public DisponibiliteResponseDTO getHorairesIndisponiblesParTerrain(Long terrainId) {
+        List<IndisponibleHoraire> indisponibles = indisponibleHoraireRepository.findByTerrainId(terrainId);
 
-        // 1. Récupérer TOUS les horaires d'abonnement
-        List<AbonnementHoraire> abonnementHoraires = abonnementHoraireRepository.findAll();
+        LocalDate aujourdhui = LocalDate.now();
+        LocalTime maintenant = LocalTime.now();
 
-        for (AbonnementHoraire ah : abonnementHoraires) {
-            // Récupérer le téléphone du propriétaire via terrain
-            Integer telephone = null;
-            Long terrainId = null;
-            
-            if (ah.getAbonnement() != null 
-                    && ah.getAbonnement().getTerrain() != null) {
-                terrainId = ah.getAbonnement().getTerrain().getId();
-                
-                if (ah.getAbonnement().getTerrain().getProprietaire() != null) {
-                    telephone = ah.getAbonnement().getTerrain().getProprietaire().getTelephone();
-                }
-            }
+        List<HoraireOccupeDTO> horaires = indisponibles.stream()
+                // Ne garder que les créneaux non dépassés
+                .filter(h -> {
+                    if (h.getDate() == null) {
+                        return false;
+                    }
 
-            horairesOccupes.add(new HoraireOccupeDTO(
-                    ah.getDate(),
-                    ah.getHeureDebut(),
-                    ah.getHeureFin(),
-                    telephone,
-                    terrainId
-            ));
-        }
+                    if (h.getDate().isBefore(aujourdhui)) {
+                        return false;
+                    }
 
-        // 2. Récupérer TOUTES les réservations ponctuelles
-        List<ReservationPonctuelle> reservations = reservationPonctuelleRepository.findAll();
+                    if (h.getDate().isEqual(aujourdhui)
+                            && h.getHeureFin() != null
+                            && h.getHeureFin().isBefore(maintenant)) {
+                        return false;
+                    }
 
-        for (ReservationPonctuelle rp : reservations) {
-            // Récupérer le téléphone du propriétaire via terrain
-            Integer telephone = null;
-            Long terrainId = null;
-            
-            if (rp.getTerrain() != null) {
-                terrainId = rp.getTerrain().getId();
-                
-                if (rp.getTerrain().getProprietaire() != null) {
-                    telephone = rp.getTerrain().getProprietaire().getTelephone();
-                }
-            }
+                    return true;
+                })
+                .map(h -> new HoraireOccupeDTO(
+                        h.getDate(),
+                        h.getHeureDebut(),
+                        h.getHeureFin(),
+                        h.getTerrain() != null && h.getTerrain().getProprietaire() != null
+                                ? h.getTerrain().getProprietaire().getTelephone()
+                                : null,
+                        h.getTerrain() != null ? h.getTerrain().getId() : null
+                ))
+                .sorted(Comparator
+                        .comparing(HoraireOccupeDTO::date)
+                        .thenComparing(HoraireOccupeDTO::heureDebut))
+                .toList();
 
-            horairesOccupes.add(new HoraireOccupeDTO(
-                    rp.getDate(),
-                    rp.getHeureDebut(),
-                    rp.getHeureFin(),
-                    telephone,
-                    terrainId
-            ));
-        }
-
-        // 3. Trier les horaires par date puis par heure de début
-        horairesOccupes.sort(Comparator
-                .comparing(HoraireOccupeDTO::date)
-                .thenComparing(HoraireOccupeDTO::heureDebut));
-
-        return new DisponibiliteResponseDTO(horairesOccupes);
+        return new DisponibiliteResponseDTO(horaires);
     }
 }

@@ -89,6 +89,17 @@ public class IndisponibleHoraireController {
     }
 
     /**
+     * Mettre à jour un horaire indisponible
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<IndisponibleHoraireDTO> mettreAJourHoraire(
+            @PathVariable Long id,
+            @RequestBody IndisponibleHoraireDTO dto) {
+        IndisponibleHoraireDTO updated = indisponibleHoraireService.mettreAJourHoraireIndisponible(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
      * Supprimer un horaire indisponible
      */
     @DeleteMapping("/{id}")

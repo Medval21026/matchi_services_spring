@@ -465,14 +465,16 @@ public class AbonnementService {
             throw new IllegalArgumentException("La date de début est obligatoire");
         }
         
-        if (dto.getDateFin() == null) {
-            throw new IllegalArgumentException("La date de fin est obligatoire");
+        // ✅ CALCUL AUTOMATIQUE : Si dateFin est null, calculer automatiquement dateDebut + 28 jours
+        LocalDate dateFin = dto.getDateFin();
+        if (dateFin == null) {
+            dateFin = dto.getDateDebut().plusDays(28);
         }
         
-        if (dto.getDateFin().isBefore(dto.getDateDebut())) {
+        if (dateFin.isBefore(dto.getDateDebut())) {
             throw new IllegalArgumentException(
                 String.format("La date de fin (%s) ne peut pas être antérieure à la date de début (%s)",
-                    dto.getDateFin(), dto.getDateDebut())
+                    dateFin, dto.getDateDebut())
             );
         }
         
@@ -500,11 +502,11 @@ public class AbonnementService {
         abonnement.setClient(client);
 
         abonnement.setDateDebut(dto.getDateDebut());
-        abonnement.setDateFin(dto.getDateFin());
+        abonnement.setDateFin(dateFin); // Utiliser la date de fin calculée automatiquement si nécessaire
 
         // *** GENERATION DES HORAIRES REPETITIFS ***
         // Calculer le nombre de semaines
-        long nombreSemaines = calculerNombreSemaines(dto.getDateDebut(), dto.getDateFin());
+        long nombreSemaines = calculerNombreSemaines(dto.getDateDebut(), dateFin);
         
         // Générer tous les horaires répétés pour toutes les semaines
         List<AbonnementHoraire> horairesRepetitifs = new ArrayList<>();
@@ -565,8 +567,8 @@ public class AbonnementService {
                     }
                     
                     // ✅ VALIDATION : Ne générer que les horaires dans la période valide (dateDebut <= date <= dateFin)
-                    if (dateHoraire != null && dto.getDateFin() != null) {
-                        if (dateHoraire.isAfter(dto.getDateFin())) {
+                    if (dateHoraire != null && dateFin != null) {
+                        if (dateHoraire.isAfter(dateFin)) {
                             // Cette date dépasse la date de fin, ne pas créer cet horaire
                             continue;
                         }
@@ -616,7 +618,7 @@ public class AbonnementService {
 
         // *** DETERMINATION AUTOMATIQUE DU STATUT ***
         StatutAbonnement statutInitial = dto.getStatus() != null ? dto.getStatus() : StatutAbonnement.ACTIF;
-        StatutAbonnement statutFinal = determinerStatut(dto.getDateDebut(), dto.getDateFin(), statutInitial);
+        StatutAbonnement statutFinal = determinerStatut(dto.getDateDebut(), dateFin, statutInitial);
         abonnement.setStatus(statutFinal);
 
         Abonnement saved = abonnementRepository.save(abonnement);
@@ -677,6 +679,13 @@ public class AbonnementService {
         
         if (dto.getDateFin() != null) {
             abonnement.setDateFin(dto.getDateFin());
+            datesModifiees = true;
+        } else {
+            // ✅ CALCUL AUTOMATIQUE : Si dateFin n'est pas fournie, calculer automatiquement dateDebut + 28 jours
+            // Utiliser la date de début actuelle (qui peut avoir été modifiée)
+            LocalDate dateDebutActuelle = abonnement.getDateDebut();
+            LocalDate nouvelleDateFin = dateDebutActuelle.plusDays(28);
+            abonnement.setDateFin(nouvelleDateFin);
             datesModifiees = true;
         }
         

@@ -65,6 +65,11 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-security</artifactId>
 	</dependency>
+	<dependency>
+		<groupId>org.springframework.kafka</groupId>
+		<artifactId>spring-kafka</artifactId>
+	</dependency>
+
 
 	<!-- JWT pour la génération de tokens -->
 	<dependency>
@@ -105,6 +110,21 @@
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- Kafka pour la synchronisation via broker d'événements -->
+    <!-- Déjà inclus via spring-kafka ci-dessus -->
+
+    <!-- JSON pour la sérialisation des messages -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+    </dependency>
+    
+    <!-- Support Java 8 Time (LocalDate, LocalTime, etc.) -->
+    <dependency>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
 </dependencies>
