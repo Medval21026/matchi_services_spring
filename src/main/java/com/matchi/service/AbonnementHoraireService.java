@@ -34,6 +34,7 @@ public class AbonnementHoraireService {
     private final ReservationPonctuelleRepository reservationPonctuelleRepository;
     private final IndisponibleHoraireRepository indisponibleHoraireRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaAvailabilityService kafkaAvailabilityService;
     
     @PersistenceContext
     private EntityManager entityManager;
@@ -308,6 +309,11 @@ public class AbonnementHoraireService {
     
     @Transactional
     public AbonnementHoraireDTO ajouterHoraire(AbonnementHoraireDTO dto) {
+        // ✅ VALIDATION : Vérifier que Kafka est disponible avant de créer un horaire potentiel
+        if (!kafkaAvailabilityService.isKafkaAvailable()) {
+            throw new IllegalStateException("Impossible de créer un horaire potentiel : Kafka n'est pas démarré ou n'est pas disponible. Veuillez démarrer Kafka avant de créer un horaire.");
+        }
+        
         // Vérifier et gérer l'exception de chevauchement horaire
         if (dto.getHeureFin() == null && dto.getHeureDebut() != null) {
             // Heure fin automatique = heure debut + 1h

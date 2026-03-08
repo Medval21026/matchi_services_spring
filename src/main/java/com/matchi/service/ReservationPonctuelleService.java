@@ -28,6 +28,7 @@ public class ReservationPonctuelleService {
     private final TerrainServiceRepository terrainServiceRepository;
     private final IndisponibleHoraireRepository indisponibleHoraireRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaAvailabilityService kafkaAvailabilityService;
     
     @PersistenceContext
     private EntityManager entityManager;
@@ -401,6 +402,11 @@ public class ReservationPonctuelleService {
 
     @Transactional
     public ReservationPonctuelleDTO createReservation(ReservationPonctuelleDTO dto) {
+        // ✅ VALIDATION : Vérifier que Kafka est disponible avant de créer une réservation potentielle
+        if (!kafkaAvailabilityService.isKafkaAvailable()) {
+            throw new IllegalStateException("Impossible de créer une réservation potentielle : Kafka n'est pas démarré ou n'est pas disponible. Veuillez démarrer Kafka avant de créer une réservation.");
+        }
+        
         // ✅ VALIDATION : Vérifier que la date et l'heure ne sont pas dans le passé
         // Calculer heureFin si non fournie
         java.time.LocalTime heureFin = dto.heureFin();

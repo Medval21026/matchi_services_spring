@@ -30,6 +30,7 @@ public class AbonnementService {
     private final ReservationPonctuelleRepository reservationPonctuelleRepository;
     private final IndisponibleHoraireRepository indisponibleHoraireRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final KafkaAvailabilityService kafkaAvailabilityService;
     
     @PersistenceContext
     private EntityManager entityManager;
@@ -448,6 +449,11 @@ public class AbonnementService {
     // ======== CREATE ========
     @Transactional
     public AbonnementDTO createAbonnement(AbonnementCreateDTO dto) {
+        // ✅ VALIDATION : Vérifier que Kafka est disponible avant de créer un abonnement
+        if (!kafkaAvailabilityService.isKafkaAvailable()) {
+            throw new IllegalStateException("Impossible de créer un abonnement : Kafka n'est pas démarré ou n'est pas disponible. Veuillez démarrer Kafka avant de créer un abonnement.");
+        }
+        
         // ✅ VALIDATION : Vérifier les données obligatoires
         if (dto == null) {
             throw new IllegalArgumentException("Les données de l'abonnement ne peuvent pas être nulles");

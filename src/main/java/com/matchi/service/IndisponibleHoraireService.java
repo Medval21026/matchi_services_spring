@@ -51,6 +51,7 @@ public class IndisponibleHoraireService {
     private final ReservationPonctuelleRepository reservationPonctuelleRepository;
     private final TerrainServiceRepository terrainServiceRepository;
     private final DjangoSyncService djangoSyncService;
+    private final KafkaAvailabilityService kafkaAvailabilityService;
     
     @Autowired(required = false)
     private HoraireEventPublisherService horaireEventPublisherService;
@@ -163,6 +164,12 @@ public class IndisponibleHoraireService {
      * Logique interne de synchronisation (appelée avec le verrou)
      */
     private void synchroniserHorairesIndisponiblesInternal(Long terrainId) {
+        // ✅ VALIDATION : Vérifier que Kafka est disponible avant de créer des horaires potentiels
+        if (!kafkaAvailabilityService.isKafkaAvailable()) {
+            log.warn("⚠️ Impossible de synchroniser les horaires indisponibles pour le terrain {} : Kafka n'est pas démarré ou n'est pas disponible", terrainId);
+            throw new IllegalStateException("Impossible de créer des horaires potentiels : Kafka n'est pas démarré ou n'est pas disponible. Veuillez démarrer Kafka avant de créer des abonnements ou réservations.");
+        }
+        
         // ✅ CLEAR : Vider le cache L1 au début pour forcer la relecture depuis la base
         entityManager.clear();
         
@@ -613,6 +620,11 @@ public class IndisponibleHoraireService {
      */
     @Transactional
     public IndisponibleHoraireDTO ajouterHoraireIndisponible(IndisponibleHoraireDTO dto) {
+        // ✅ VALIDATION : Vérifier que Kafka est disponible avant de créer un horaire potentiel
+        if (!kafkaAvailabilityService.isKafkaAvailable()) {
+            throw new IllegalStateException("Impossible de créer un horaire potentiel : Kafka n'est pas démarré ou n'est pas disponible. Veuillez démarrer Kafka avant de créer un horaire.");
+        }
+        
         TerrainService terrain = terrainServiceRepository.findById(dto.terrainId())
                 .orElseThrow(() -> new IllegalArgumentException("Terrain non trouvé"));
 
