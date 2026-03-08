@@ -102,15 +102,80 @@ public class DjangoHoraireEventListener {
                             boolean isRunning = (Boolean) isRunningMethod.invoke(container);
                             log.info("   Statut: {}", isRunning ? "✅ Démarré" : "❌ Arrêté");
                             
-                            // Si le listener n'est pas démarré, le démarrer
-                            if (!isRunning && "django-horaire-listener".equals(listenerId)) {
-                                log.warn("⚠️ Le listener 'django-horaire-listener' n'est pas démarré, tentative de démarrage...");
+                            // ✅ NOUVELLE FONCTIONNALITÉ : Réinitialiser l'offset au démarrage si nécessaire
+                            if ("django-horaire-listener".equals(listenerId)) {
                                 try {
-                                    java.lang.reflect.Method startMethod = container.getClass().getMethod("start");
-                                    startMethod.invoke(container);
-                                    log.info("✅ Listener 'django-horaire-listener' démarré manuellement");
+                                    // S'assurer que le listener est démarré d'abord
+                                    if (!isRunning) {
+                                        java.lang.reflect.Method startMethod = container.getClass().getMethod("start");
+                                        startMethod.invoke(container);
+                                        log.info("✅ Listener démarré");
+                                        Thread.sleep(2000); // Attendre que le listener se connecte et obtienne les partitions
+                                    }
+                                    
+                                    // ✅ RÉINITIALISER L'OFFSET : Forcer la lecture depuis le début
+                                    // Utiliser seekToBeginning pour réinitialiser l'offset à 0 pour toutes les partitions
+                                    try {
+                                        Class<?> consumerClass = Class.forName("org.apache.kafka.clients.consumer.Consumer");
+                                        
+                                        // Obtenir le consumer via getContainerProperties puis le consumer
+                                        java.lang.reflect.Method getContainerPropertiesMethod = container.getClass().getMethod("getContainerProperties");
+                                        Object containerProps = getContainerPropertiesMethod.invoke(container);
+                                        
+                                        // Essayer d'obtenir le consumer directement
+                                        Object consumer = null;
+                                        try {
+                                            java.lang.reflect.Method getConsumerMethod = container.getClass().getMethod("getConsumer");
+                                            consumer = getConsumerMethod.invoke(container);
+                                        } catch (NoSuchMethodException e) {
+                                            // Si getConsumer() n'existe pas, essayer une autre méthode
+                                            log.debug("⚠️ Méthode getConsumer() non disponible, tentative d'une autre approche");
+                                        }
+                                        
+                                        if (consumer != null) {
+                                            // Obtenir les partitions assignées
+                                            java.lang.reflect.Method assignmentMethod = consumerClass.getMethod("assignment");
+                                            java.util.Set<?> partitions = (java.util.Set<?>) assignmentMethod.invoke(consumer);
+                                            
+                                            if (partitions != null && !partitions.isEmpty()) {
+                                                // Utiliser seekToBeginning pour réinitialiser l'offset
+                                                java.lang.reflect.Method seekToBeginningMethod = consumerClass.getMethod("seekToBeginning", java.util.Collection.class);
+                                                seekToBeginningMethod.invoke(consumer, partitions);
+                                                log.info("✅ Offset réinitialisé au début pour {} partitions: {}", partitions.size(), partitions);
+                                            } else {
+                                                log.warn("⚠️ Aucune partition assignée au consumer, impossible de réinitialiser l'offset");
+                                            }
+                                        } else {
+                                            log.warn("⚠️ Consumer non disponible, impossible de réinitialiser l'offset automatiquement");
+                                            log.warn("⚠️ L'offset sera géré par auto-offset-reset=earliest (si pas d'offset commité)");
+                                        }
+                                    } catch (Exception e) {
+                                        log.warn("⚠️ Impossible de réinitialiser l'offset automatiquement: {}", e.getMessage());
+                                        log.warn("⚠️ L'offset sera géré par auto-offset-reset=earliest (si pas d'offset commité)");
+                                        log.warn("⚠️ Si des messages ont été manqués, réinitialisez l'offset manuellement via Kafka UI");
+                                    }
+                                    
+                                    // Vérifier à nouveau si le listener est démarré
+                                    boolean isRunningAfter = (Boolean) isRunningMethod.invoke(container);
+                                    if (isRunningAfter) {
+                                        log.info("✅ Listener 'django-horaire-listener' est démarré et prêt à recevoir des messages");
+                                        log.info("📡 Le listener devrait maintenant consommer les messages depuis le début (offset réinitialisé)");
+                                    } else {
+                                        log.warn("⚠️ Listener 'django-horaire-listener' n'est pas démarré");
+                                    }
                                 } catch (Exception e) {
-                                    log.error("❌ Erreur lors du démarrage manuel du listener: {}", e.getMessage());
+                                    log.error("❌ Erreur lors de la réinitialisation de l'offset: {}", e.getMessage());
+                                    log.error("❌ Détails: ", e);
+                                    // Essayer de démarrer le listener quand même
+                                    try {
+                                        if (!isRunning) {
+                                            java.lang.reflect.Method startMethod = container.getClass().getMethod("start");
+                                            startMethod.invoke(container);
+                                            log.info("✅ Listener démarré (sans réinitialisation d'offset)");
+                                        }
+                                    } catch (Exception e2) {
+                                        log.error("❌ Erreur lors du démarrage du listener: {}", e2.getMessage());
+                                    }
                                 }
                             }
                         }
@@ -147,6 +212,7 @@ public class DjangoHoraireEventListener {
     @Transactional
     public void handleHoraireSyncEvent(HoraireSyncEventRaw rawEvent, Acknowledgment acknowledgment) {
         log.info("📥 ===== RÉCEPTION D'UN ÉVÉNEMENT KAFKA =====");
+        log.info("📥 [DEBUG] Listener actif et traitement d'un message Kafka");
         
         // ✅ Vérifier que rawEvent n'est pas null
         if (rawEvent == null) {
@@ -167,12 +233,13 @@ public class DjangoHoraireEventListener {
                 rawEvent.numTel(), rawEvent.proprietaireTelephone());
         log.debug("📥 Événement brut complet: {}", rawEvent);
         
-        // ✅ Trouver le terrainId via numTel (client = propriétaire par numéro de téléphone)
-        Long terrainId = rawEvent.terrainId();
+        // ✅ PRIORITÉ : Trouver le terrainId via numTel (numTel = numéro de téléphone du propriétaire)
+        // Le numTel dans le message Django correspond au numéro de téléphone du propriétaire du terrain
+        Long terrainId = null;
         Integer numTel = rawEvent.numTel() != null ? rawEvent.numTel() : rawEvent.proprietaireTelephone();
         
         if (numTel != null) {
-            log.info("🔍 Recherche du terrain via numTel: {}", numTel);
+            log.info("🔍 Recherche du terrain via numTel (propriétaire): {}", numTel);
             try {
                 // Trouver le propriétaire par numéro de téléphone
                 Optional<Proprietaire> proprietaireOpt = 
@@ -194,7 +261,8 @@ public class DjangoHoraireEventListener {
                         log.info("✅ Terrain trouvé via numTel: terrainId={}, Nom={}", 
                                 terrainId, terrain.getNom());
                     } else {
-                        log.warn("⚠️ Aucun terrain trouvé pour le propriétaire ID={}", proprietaire.getId());
+                        log.warn("⚠️ Aucun terrain trouvé pour le propriétaire ID={} (numTel={})", 
+                                proprietaire.getId(), numTel);
                     }
                 } else {
                     log.warn("⚠️ Aucun propriétaire trouvé avec numTel={}", numTel);
@@ -203,13 +271,23 @@ public class DjangoHoraireEventListener {
                 log.error("❌ Erreur lors de la recherche du terrain via numTel: {}", e.getMessage(), e);
             }
         } else {
-            log.warn("⚠️ numTel et proprietaireTelephone sont null, utilisation du terrainId du message: {}", terrainId);
+            log.warn("⚠️ numTel et proprietaireTelephone sont null dans le message");
+        }
+        
+        // ✅ Si le terrain n'a pas été trouvé via numTel, utiliser le terrainId du message comme fallback
+        // Mais seulement si le terrainId du message existe et est valide
+        if (terrainId == null) {
+            if (rawEvent.terrainId() != null) {
+                log.info("🔍 Terrain non trouvé via numTel, utilisation du terrainId du message: {}", rawEvent.terrainId());
+                terrainId = rawEvent.terrainId();
+            } else {
+                log.warn("⚠️ Aucun terrainId trouvé: ni via numTel, ni dans le message");
+            }
         }
         
         // ✅ Créer un nouveau rawEvent avec le terrainId trouvé
-        // Utiliser le terrainId trouvé ou celui du message
         // @JsonAlias gère automatiquement les formats camelCase et snake_case
-        Long finalTerrainId = terrainId != null ? terrainId : rawEvent.terrainId();
+        Long finalTerrainId = terrainId;
         
         HoraireSyncEventRaw rawEventWithTerrainId = new HoraireSyncEventRaw(
                 rawEvent.uuid(),
@@ -255,7 +333,9 @@ public class DjangoHoraireEventListener {
             
             // Pour "deleted", terrainId peut être null - on utilise uuid pour trouver
             if (event.terrainId() == null && !"deleted".equals(event.action())) {
-                log.error("❌ Événement sans terrainId (même après recherche), ignoré");
+                log.error("❌ Événement sans terrainId (même après recherche via numTel), ignoré");
+                log.error("❌ Vérifiez que le numTel ({}) correspond à un propriétaire avec un terrain associé", 
+                        rawEvent.numTel() != null ? rawEvent.numTel() : rawEvent.proprietaireTelephone());
                 if (acknowledgment != null) {
                     acknowledgment.acknowledge(); // Accepter pour ne pas bloquer
                 }

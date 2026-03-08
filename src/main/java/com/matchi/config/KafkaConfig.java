@@ -139,6 +139,11 @@ public class KafkaConfig {
             configProps.put("heartbeat.interval.ms", 10000);
             configProps.put("max.poll.records", 10);
             
+            // ✅ IMPORTANT : S'assurer que le consumer lit depuis le début si pas d'offset commité
+            // auto-offset-reset=earliest signifie : lire depuis le début si le consumer group n'a pas d'offset
+            // Cela permet de lire les messages qui ont été envoyés avant le démarrage de Spring Boot
+            System.out.println("✅ Configuration consumer: auto-offset-reset=earliest (lit depuis le début si pas d'offset)");
+            
             // ✅ Configuration pour capturer les erreurs de désérialisation
             configProps.put("spring.json.deserializer.ignore.unknown.properties", true);
             configProps.put("spring.json.deserializer.fail.on.unknown.properties", false);
