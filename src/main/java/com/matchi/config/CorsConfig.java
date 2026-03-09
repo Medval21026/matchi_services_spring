@@ -28,12 +28,17 @@ public class CorsConfig {
                 // Liste des origines autorisées avec credentials
                 java.util.List<String> allowedOrigins = Arrays.asList(
                     // Frontend Angular (Vercel)
-                    "https://matchi-services-angular-afyy.vercel.app",
+                    // VPS - toutes les variantes
+                    "http://187.124.35.219",
+                    "http://187.124.35.219/",
+                    "http://187.124.35.219:80",
+                    "http://187.124.35.219:8080",
+                    "http://187.124.35.219:8085",
                     // Développement local
                     "http://localhost:4200",
                     "http://localhost:4201",
                     "http://127.0.0.1:4200",
-                    "http://localhost:8080",
+                    "http://187.124.35.219",
                     "http://localhost:8085",
                     "http://127.0.0.1:8080"
                 );
