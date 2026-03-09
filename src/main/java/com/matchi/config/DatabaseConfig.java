@@ -14,7 +14,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 
 /**
- * Configuration et diagnostic de la base de données pour Railway
+ * Configuration et diagnostic de la base de données
  * Affiche les variables d'environnement au démarrage pour le débogage
  */
 @Configuration
@@ -97,14 +97,12 @@ public class DatabaseConfig {
         if (!allVariablesPresent) {
             logger.error("");
             logger.error("⚠️  ATTENTION: Variables MySQL manquantes !");
-            logger.error("⚠️  Sur Railway, vous devez connecter MySQL au service Spring Boot.");
-            logger.error("⚠️  Voir le guide: RAILWAY_MYSQL_CONNECTION_GUIDE.md");
-            logger.error("");
-            logger.error("Étapes à suivre:");
-            logger.error("1. Cliquez sur 'matchi_services_spring' → Settings");
-            logger.error("2. Cherchez 'Connect Database' ou 'Add Service'");
-            logger.error("3. Sélectionnez votre service MySQL");
-            logger.error("4. Railway ajoutera automatiquement les variables");
+            logger.error("⚠️  Configurez les variables d'environnement suivantes:");
+            logger.error("   - MYSQLHOST");
+            logger.error("   - MYSQLPORT");
+            logger.error("   - MYSQLDATABASE");
+            logger.error("   - MYSQLUSER");
+            logger.error("   - MYSQLPASSWORD");
             logger.error("");
         }
         
@@ -122,7 +120,7 @@ public class DatabaseConfig {
         logger.info("==========================================");
         
         // Afficher les variables d'environnement MySQL
-        logger.info("Variables MySQL Railway:");
+        logger.info("Variables MySQL:");
         logger.info("  MYSQLHOST: {}", mysqlHost.isEmpty() ? "NON DÉFINI" : mysqlHost);
         logger.info("  MYSQLPORT: {}", mysqlPort.isEmpty() ? "NON DÉFINI" : mysqlPort);
         logger.info("  MYSQLDATABASE: {}", mysqlDatabase.isEmpty() ? "NON DÉFINI" : mysqlDatabase);

@@ -51,7 +51,7 @@ public class DjangoHoraireEventListener {
     public void init() {
         log.info("✅ DjangoHoraireEventListener initialisé et prêt à écouter les messages Kafka");
         log.info("📡 Topic: horaire-sync-topic, Group ID: horaire-sync-group");
-        log.info("📡 Bootstrap servers: localhost:9094");
+        log.info("📡 Bootstrap servers: 187.124.35.219:9092");
         log.info("📡 Container Factory: kafkaListenerContainerFactory");
         
         // Vérifier que l'annotation @KafkaListener est bien présente

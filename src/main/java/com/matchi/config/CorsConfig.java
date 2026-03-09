@@ -29,14 +29,12 @@ public class CorsConfig {
                 java.util.List<String> allowedOrigins = Arrays.asList(
                     // Frontend Angular (Vercel)
                     "https://matchi-services-angular-afyy.vercel.app",
-                    // Backend Railway (HTTP et HTTPS pour Swagger UI)
-                    "http://matchiservicesspring-production.up.railway.app",
-                    "https://matchiservicesspring-production.up.railway.app",
                     // Développement local
                     "http://localhost:4200",
                     "http://localhost:4201",
                     "http://127.0.0.1:4200",
                     "http://localhost:8080",
+                    "http://localhost:8085",
                     "http://127.0.0.1:8080"
                 );
                 
@@ -47,11 +45,6 @@ public class CorsConfig {
                 } 
                 // Si l'origine est dans la liste autorisée, autoriser avec credentials
                 else if (allowedOrigins.contains(origin)) {
-                    config.setAllowCredentials(true);
-                    config.setAllowedOrigins(Collections.singletonList(origin));
-                }
-                // Si l'origine contient "railway.app" (toutes les variantes Railway), autoriser avec credentials
-                else if (origin.contains("railway.app")) {
                     config.setAllowCredentials(true);
                     config.setAllowedOrigins(Collections.singletonList(origin));
                 }

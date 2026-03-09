@@ -4,9 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 
 /**
@@ -31,12 +28,12 @@ public class EnvironmentDiagnostic implements ApplicationListener<ApplicationEnv
         
         if (activeProfiles.length == 0 || !java.util.Arrays.asList(activeProfiles).contains("prod")) {
             logger.error("⚠️  ATTENTION: Le profil 'prod' n'est PAS actif !");
-            logger.error("⚠️  Ajoutez SPRING_PROFILES_ACTIVE=prod dans les variables d'environnement Railway");
+            logger.error("⚠️  Ajoutez SPRING_PROFILES_ACTIVE=prod dans les variables d'environnement");
         }
         
         // Vérifier les variables MySQL
         logger.error("");
-        logger.error("Variables MySQL Railway:");
+        logger.error("Variables MySQL:");
         
         String mysqlHost = env.getProperty("MYSQLHOST");
         String mysqlPort = env.getProperty("MYSQLPORT");
@@ -79,16 +76,13 @@ public class EnvironmentDiagnostic implements ApplicationListener<ApplicationEnv
             mysqlDatabase == null || mysqlDatabase.isEmpty()) {
             logger.error("");
             logger.error("⚠️  ATTENTION: Variables MySQL manquantes !");
-            logger.error("⚠️  Sur Railway, vous devez créer des 'Variable References'.");
-            logger.error("");
-            logger.error("Étapes à suivre:");
-            logger.error("1. Allez sur Railway → 'matchi_services_spring' → Variables");
-            logger.error("2. Cliquez sur '+ New Variable'");
-            logger.error("3. Pour chaque variable MySQL:");
-            logger.error("   - Name: MYSQLHOST");
-            logger.error("   - Value: Cliquez sur 'Reference' → Sélectionnez service 'MySQL' → Variable 'MYSQLHOST'");
-            logger.error("4. Répétez pour: MYSQLPORT, MYSQLDATABASE, MYSQLUSER, MYSQLPASSWORD");
-            logger.error("5. Ajoutez aussi: SPRING_PROFILES_ACTIVE = prod");
+            logger.error("⚠️  Configurez les variables d'environnement suivantes:");
+            logger.error("   - MYSQLHOST");
+            logger.error("   - MYSQLPORT");
+            logger.error("   - MYSQLDATABASE");
+            logger.error("   - MYSQLUSER");
+            logger.error("   - MYSQLPASSWORD");
+            logger.error("   - SPRING_PROFILES_ACTIVE=prod");
             logger.error("");
         }
         

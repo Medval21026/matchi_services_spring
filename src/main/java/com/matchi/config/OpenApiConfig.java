@@ -22,17 +22,10 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         OpenAPI openAPI = new OpenAPI();
         
-        // Si on est en production, forcer HTTPS
+        // Si on est en production, configurer les serveurs
         if ("prod".equals(activeProfile)) {
             List<Server> servers = new ArrayList<>();
-            // Ajouter le serveur HTTPS Railway
-            servers.add(new Server()
-                .url("https://matchiservicesspring-production.up.railway.app")
-                .description("Production Server (HTTPS)"));
-            // Garder aussi HTTP pour compatibilité
-            servers.add(new Server()
-                .url("http://matchiservicesspring-production.up.railway.app")
-                .description("Production Server (HTTP - redirects to HTTPS)"));
+            // Les serveurs de production peuvent être configurés ici si nécessaire
             openAPI.setServers(servers);
         }
         

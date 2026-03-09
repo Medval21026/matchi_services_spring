@@ -38,7 +38,7 @@ public class KafkaConfig {
         }
     }
 
-    @Value("${spring.kafka.bootstrap-servers:localhost:9094}")
+    @Value("${spring.kafka.bootstrap-servers:187.124.35.219:9092}")
     private String bootstrapServers;
 
     @Value("${spring.kafka.consumer.group-id:horaire-sync-group}")
