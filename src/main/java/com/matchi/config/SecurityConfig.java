@@ -28,6 +28,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource))
             // Désactiver CSRF pour les API REST
             .csrf(csrf -> csrf.disable())
+            // Désactiver les headers de sécurité qui causent des problèmes en HTTP
+            // (COOP, COEP, CORP ne sont pas fiables en HTTP, seulement en HTTPS)
+            .headers(headers -> headers
+                .frameOptions(frameOptions -> frameOptions.disable())
+                .contentTypeOptions(contentTypeOptions -> contentTypeOptions.disable())
+                .httpStrictTransportSecurity(hsts -> hsts.disable())
+            )
             // Autoriser toutes les requêtes (à sécuriser plus tard)
             .authorizeHttpRequests(auth -> auth
                 .anyRequest().permitAll()
